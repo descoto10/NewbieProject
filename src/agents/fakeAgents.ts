@@ -1,4 +1,4 @@
-// Stub agents with hard-coded logic. Each owner replaces theirs with an LLM-backed version
+// Stub agents with hard-coded logic (research is now real in ./research.ts). Each owner replaces theirs with an LLM-backed version
 // that keeps the same interface. Research/store = Person 3, Ads/support = Person 4.
 
 import { randomUUID } from 'node:crypto';
@@ -6,24 +6,6 @@ import type { Action } from '../contract/actions.ts';
 import type { Agent } from '../contract/agents.ts';
 
 const act = (a: Omit<Action, 'id'>): Action => ({ id: randomUUID().slice(0, 8), ...a });
-
-export const researchAgent: Agent = {
-  name: 'research',
-  tools: [],
-  permissions: { allowedActions: ['research.rank_niches'] },
-  async run(ctx) {
-    return [act({
-      agent: 'research', subTeamId: ctx.subTeamId, type: 'research.rank_niches', costCents: 0,
-      payload: { niches: [
-        { name: 'Retro hiking tees', score: 82 },
-        { name: 'Cat-dad humor mugs', score: 77 },
-        { name: 'Minimalist climbing hoodies', score: 71 },
-      ] },
-      reasoning: 'Rising search interest, low competitor saturation, POD-friendly.',
-      evidence: [{ source: 'google_trends', summary: '"hiking shirt" +34% YoY' }],
-    })];
-  },
-};
 
 export const storeBuildAgent: Agent = {
   name: 'store_build',
@@ -59,18 +41,4 @@ export const adsAgent: Agent = {
   },
 };
 
-export const supportAgent: Agent = {
-  name: 'support',
-  tools: ['email', 'shopify'],
-  permissions: { allowedActions: ['support.reply', 'support.refund'], maxCostPerActionCents: 2500 },
-  async run(ctx) {
-    const inbox = await ctx.adapters.email.inbox();
-    return inbox.map(m => m.subject.toLowerCase().includes('refund')
-      ? act({ agent: 'support', subTeamId: null, type: 'support.refund', costCents: 3499,
-          payload: { orderId: m.orderId, to: m.from },
-          reasoning: `Customer requested refund: "${m.body}"`, evidence: [] })
-      : act({ agent: 'support', subTeamId: null, type: 'support.reply', costCents: 0,
-          payload: { to: m.from, subject: `Re: ${m.subject}`, body: 'Your order shipped and arrives in 2 days.' },
-          reasoning: 'Order status question; tracking shows in transit.', evidence: [] }));
-  },
-};
+// Support agent moved to ./support.ts

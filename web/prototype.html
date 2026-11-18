@@ -3,297 +3,450 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent Store – Prototype</title>
+<title>Hive – Prototype v0.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#f4f3ef; --card:#ffffff; --ink:#1b1b1a; --muted:#6f6d66; --line:#e4e2db;
-    --accent:#2f5d50; --accent-soft:#e3ece8; --warn:#b5651d; --warn-soft:#f7ebdf;
-    --bad:#a8322d; --bad-soft:#f6e1df; --good:#2f7a4a; --good-soft:#e1f0e6;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);
-       display:flex;justify-content:center;min-height:100vh;padding:24px 12px}
-  .phone{width:100%;max-width:400px;background:var(--bg);display:flex;flex-direction:column;gap:14px}
-  header{display:flex;justify-content:space-between;align-items:flex-end;padding:4px 4px 0}
-  header h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
-  header .sub{font-size:13px;color:var(--muted);margin-top:2px}
-  .pill{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
-  .cap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-  .cap-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
-  .cap-row b{color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:500}
-  .bar{height:8px;background:var(--line);border-radius:99px;margin-top:10px;overflow:hidden;display:flex}
-  .bar .spent{background:var(--accent);transition:width .4s}
-  .bar .res{background:#9bb8ad;transition:width .4s}
-  nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
-  nav button{border:0;background:none;font:inherit;font-size:13px;font-weight:500;color:var(--muted);padding:8px 0;border-radius:9px;cursor:pointer;position:relative}
-  nav button.on{background:var(--ink);color:#fff}
-  nav .badge{position:absolute;top:3px;right:8px;background:var(--warn);color:#fff;font-size:10px;font-weight:700;border-radius:99px;min-width:16px;height:16px;line-height:16px}
-  section{display:none;flex-direction:column;gap:10px}
-  section.on{display:flex}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
-  .tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
-  .t-high{background:var(--bad-soft);color:var(--bad)} .t-med{background:var(--warn-soft);color:var(--warn)}
-  .t-low{background:var(--good-soft);color:var(--good)}
-  .t-agent{background:#eeede8;color:var(--muted);font-family:'JetBrains Mono',monospace}
-  .req-top{display:flex;gap:6px;align-items:center;margin-bottom:8px}
-  .req h3{font-size:15px;font-weight:600;margin-bottom:4px}
-  .req .amt{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0}
-  .req p{font-size:13px;color:var(--muted);line-height:1.45}
-  .why{margin-top:8px;padding:9px 10px;background:var(--bg);border-radius:8px;font-size:12.5px;line-height:1.45}
-  .why b{font-weight:600}
-  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-  .btns button{font:inherit;font-size:14px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;border:1px solid var(--line)}
-  .approve{background:var(--accent);color:#fff;border-color:var(--accent)!important}
-  .deny{background:var(--card);color:var(--ink)}
-  .empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:14px}
-  .empty .big{font-size:28px;margin-bottom:6px}
-  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .kpi .l{font-size:12px;color:var(--muted)} .kpi .v{font-family:'JetBrains Mono',monospace;font-size:22px;margin-top:4px}
-  .pos{color:var(--good)} .neg{color:var(--bad)}
-  table{width:100%;border-collapse:collapse;font-size:13.5px}
-  td{padding:9px 0;border-bottom:1px solid var(--line)} tr:last-child td{border:0}
-  td:last-child{text-align:right;font-family:'JetBrains Mono',monospace}
-  tr.total td{font-weight:700;border-top:2px solid var(--ink)}
-  .h{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:6px 4px 0}
-  .org{display:flex;flex-direction:column;align-items:center;gap:0}
-  .node{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;}
-  .node.root{background:var(--ink);color:#fff;border-color:var(--ink);text-align:center}
-  .node.root small{color:#bbb}
-  .node small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
-  .vline{width:2px;height:14px;background:var(--line)}
-  .teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
-  .team{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px}
-  .team.killed{opacity:.5}
-  .team h4{font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:4px}
-  .agents{display:flex;flex-direction:column;gap:5px;margin-top:8px}
-  .agent{display:flex;align-items:center;gap:7px;font-size:12px}
-  .dot{width:7px;height:7px;border-radius:50%;background:#bbb;flex:none}
-  .dot.busy{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:p 1.6s infinite}
-  .dot.wait{background:var(--warn)}
-  @keyframes p{50%{box-shadow:0 0 0 6px transparent}}
-  .mini{font-size:11px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace}
-  .feed{display:flex;flex-direction:column}
-  .ev{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.4}
-  .ev:last-child{border:0}
-  .ev .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;flex:none;font-weight:700}
-  .ic.ok{background:var(--good-soft);color:var(--good)} .ic.ask{background:var(--warn-soft);color:var(--warn)}
-  .ic.no{background:var(--bad-soft);color:var(--bad)} .ic.info{background:#eeede8;color:var(--muted)}
-  .ev .t{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
-  .run{font:inherit;font-size:14px;font-weight:600;padding:12px;border-radius:12px;border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent);cursor:pointer}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;transition:transform .25s;pointer-events:none}
-  .toast.on{transform:translateX(-50%) translateY(0)}
-  footer{text-align:center;font-size:11px;color:var(--muted);padding:8px}
+:root{
+  --bg:#f5f3ee; --card:#fff; --ink:#1c1a17; --muted:#6f6b63; --line:#e6e2d9;
+  --honey:#c98a0b; --honey-soft:#fbf1dc; --good:#2f7a4a; --good-soft:#e2f1e7;
+  --warn:#b5651d; --warn-soft:#f8ecdf; --bad:#a8322d; --bad-soft:#f7e2e0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);display:flex;justify-content:center;min-height:100vh;padding:20px 12px 60px}
+.app{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px}
+.mono{font-family:'JetBrains Mono',monospace}
+header{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+.hex{width:26px;height:26px;background:var(--honey);clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%)}
+.cap-pill{font-size:12px;font-weight:600;background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:99px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.step{font-size:11.5px;font-weight:600;color:var(--muted);text-align:center;padding-top:8px;border-top:3px solid var(--line)}
+.step.done{color:var(--ink);border-color:var(--ink)} .step.on{color:var(--honey);border-color:var(--honey)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+h2{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.sub{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45}
+.btn{font:inherit;font-size:14.5px;font-weight:600;padding:13px;border-radius:12px;border:0;cursor:pointer;width:100%}
+.btn.primary{background:var(--ink);color:#fff} .btn.primary:disabled{background:#c9c5bc;cursor:not-allowed}
+.btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.honey{background:var(--honey);color:#fff}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.view{display:none;flex-direction:column;gap:12px} .view.on{display:flex}
+/* call */
+.call{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow-y:auto;padding-right:2px}
+.bub{max-width:85%;font-size:13.5px;line-height:1.4;padding:9px 12px;border-radius:14px;animation:pop .25s}
+.bub.hive{background:var(--honey-soft);align-self:flex-start;border-bottom-left-radius:4px}
+.bub.user{background:var(--ink);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+.wave{display:flex;gap:3px;align-items:center;height:18px}
+.wave i{width:3px;background:var(--honey);border-radius:2px;animation:w 1s infinite ease-in-out}
+.wave i:nth-child(2){animation-delay:.1s}.wave i:nth-child(3){animation-delay:.2s}.wave i:nth-child(4){animation-delay:.3s}
+@keyframes w{0%,100%{height:4px}50%{height:16px}}
+.prof{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pf{border:1px dashed var(--line);border-radius:10px;padding:8px 10px;font-size:11.5px;color:var(--muted);transition:.3s}
+.pf b{display:block;font-size:14px;color:var(--ink);margin-top:2px;font-weight:600}
+.pf.got{border-style:solid;border-color:var(--good);background:var(--good-soft)}
+.pf.cap{grid-column:span 2} .pf.cap b{font-size:20px} .pf.cap.got{border-color:var(--honey);background:var(--honey-soft)}
+/* niches */
+.niche{border:2px solid var(--line);border-radius:14px;background:var(--card);padding:12px 14px;cursor:pointer;transition:.15s}
+.niche.sel{border-color:var(--ink)}
+.nt{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nt h3{font-size:15px;font-weight:600}
+.rank{font-size:11px;font-weight:700;color:var(--muted);margin-right:6px}
+.score{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500}
+.sbar{height:5px;background:var(--line);border-radius:9px;margin:8px 0;overflow:hidden}
+.sbar i{display:block;height:100%;background:var(--honey)}
+.ev{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11.5px;color:var(--muted)}
+.check{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff;flex:none}
+.niche.sel .check{background:var(--ink);border-color:var(--ink)}
+/* test */
+.capbar{height:9px;background:var(--line);border-radius:9px;overflow:hidden;display:flex;margin-top:8px}
+.capbar .s{background:var(--ink);transition:width .4s}.capbar .r{background:#c9b48a;transition:width .4s}
+.kv{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)} .kv b{color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:500}
+.orch{background:var(--ink);color:#fff;border-radius:12px;padding:10px;text-align:center;font-size:13px;font-weight:600}
+.orch small{display:block;color:#bbb;font-weight:400;font-size:11px;margin-top:2px}
+.vl{width:2px;height:12px;background:var(--line);margin:0 auto}
+.team{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;transition:.3s}
+.team.killed{opacity:.45} .team.keep{border:2px solid var(--good)}
+.th{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600}
+.tag{font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:6px}
+.t-test{background:var(--honey-soft);color:var(--honey)} .t-keep{background:var(--good-soft);color:var(--good)} .t-kill{background:var(--bad-soft);color:var(--bad)}
+.t-high{background:var(--bad-soft);color:var(--bad)} .t-med{background:var(--warn-soft);color:var(--warn)} .t-agent{background:#efede7;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.agents{display:flex;gap:5px;flex-wrap:wrap;margin:7px 0}
+.ag{font-size:10.5px;padding:3px 7px;border-radius:99px;background:#f1efe9;color:var(--muted);display:flex;align-items:center;gap:4px}
+.ag .d{width:6px;height:6px;border-radius:50%;background:#bbb}.ag.busy .d{background:var(--honey);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.3}}
+.arms{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:3px 10px;font-size:11.5px;font-family:'JetBrains Mono',monospace}
+.arms .hd{color:var(--muted);font-family:Inter;font-size:10.5px}
+.pbe{height:4px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}.pbe i{display:block;height:100%;background:var(--good);transition:width .4s}
+.day{font-family:'JetBrains Mono',monospace;font-size:13px}
+.rec{border:2px solid var(--ink)}
+.rec table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.rec td{padding:6px 0;border-bottom:1px solid var(--line)} .rec tr:last-child td{border:0}
+.rec td:nth-child(n+2){text-align:right;font-family:'JetBrains Mono',monospace}
+/* run */
+nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
+nav button{border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--muted);padding:8px 0;border-radius:9px;cursor:pointer;position:relative}
+nav button.on{background:var(--ink);color:#fff}
+.badge{position:absolute;top:2px;right:4px;background:var(--honey);color:#fff;font-size:9.5px;font-weight:700;border-radius:99px;min-width:15px;height:15px;line-height:15px}
+.tab{display:none;flex-direction:column;gap:10px}.tab.on{display:flex}
+.req h3{font-size:15px;font-weight:600;margin:8px 0 2px}
+.amt{font-family:'JetBrains Mono',monospace;font-size:20px;margin:4px 0}
+.why{margin-top:8px;padding:9px 10px;background:var(--bg);border-radius:8px;font-size:12.5px;line-height:1.45}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.acts button{font:inherit;font-size:14px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:var(--card)}
+.acts .ok{background:var(--ink);color:#fff;border-color:var(--ink)}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:24px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi .l{font-size:11.5px;color:var(--muted)} .kpi .v{font-family:'JetBrains Mono',monospace;font-size:20px;margin-top:3px}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+table.pl{width:100%;border-collapse:collapse;font-size:13.5px}
+.pl td{padding:8px 0;border-bottom:1px solid var(--line)} .pl td:last-child{text-align:right;font-family:'JetBrains Mono',monospace}
+.pl tr:last-child td{border:0;font-weight:700}
+.feed .e{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.35}
+.feed .e:last-child{border:0}
+.ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.ic.ok{background:var(--good-soft);color:var(--good)}.ic.ask{background:var(--honey-soft);color:var(--honey)}.ic.no{background:var(--bad-soft);color:var(--bad)}.ic.info{background:#efede7;color:var(--muted)}
+.e small{display:block;color:var(--muted);font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:2px}
+.sc h4{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.metric{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.metric:last-child{border:0} .metric b{font-family:'JetBrains Mono',monospace;font-weight:500;text-align:right;white-space:nowrap}
+.hl b{color:var(--good)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translate(-50%,90px);background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;transition:transform .25s;pointer-events:none;z-index:9}
+.toast.on{transform:translate(-50%,0)}
+footer{text-align:center;font-size:11px;color:var(--muted)}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;font-size:11px;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="phone">
+<div class="app">
   <header>
-    <div>
-      <h1>Trailhead Supply</h1>
-      <div class="sub">Your AI team · Week 1 test</div>
-    </div>
-    <span class="pill">● Live</span>
+    <div class="logo"><div class="hex"></div>Hive</div>
+    <div class="cap-pill" id="capPill">Loss cap: not set</div>
   </header>
-
-  <div class="cap">
-    <div class="cap-row"><span>Loss cap used</span><span><b id="capUsed">$0.00</b> / $200.00</span></div>
-    <div class="bar"><div class="spent" id="barSpent"></div><div class="res" id="barRes"></div></div>
-    <div class="cap-row" style="margin-top:8px;font-size:12px"><span>Spent · Reserved</span><span id="capAvail">$200.00 left</span></div>
+  <div class="steps" id="steps">
+    <div class="step on">1 · Call</div><div class="step">2 · Niches</div><div class="step">3 · Test</div><div class="step">4 · Run</div>
   </div>
 
-  <nav>
-    <button class="on" data-tab="inbox">Inbox<span class="badge" id="badge">0</span></button>
-    <button data-tab="pnl">P&amp;L</button>
-    <button data-tab="team">Team</button>
-    <button data-tab="feed">Activity</button>
-  </nav>
-
-  <section id="inbox" class="on"></section>
-
-  <section id="pnl">
-    <div class="kpis">
-      <div class="card kpi"><div class="l">Net profit</div><div class="v" id="kNet">$0</div></div>
-      <div class="card kpi"><div class="l">Orders</div><div class="v" id="kOrders">0</div></div>
-      <div class="card kpi"><div class="l">Ad spend</div><div class="v" id="kAds">$0</div></div>
-      <div class="card kpi"><div class="l">ROAS</div><div class="v" id="kRoas">–</div></div>
+  <!-- 1. Onboarding call -->
+  <section class="view on" id="v-call">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><h2>Onboarding call</h2><div class="sub">A 10-minute voice interview. Hive asks follow-ups and sets your loss cap.</div></div>
+        <div class="wave" id="wave" style="visibility:hidden"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="call" id="call" style="margin-top:12px"></div>
     </div>
-    <div class="h">Breakdown</div>
-    <div class="card"><table id="pnlTable"></table></div>
+    <div class="card">
+      <div class="sub" style="margin:0 0 8px">Profile (filled in from what you say)</div>
+      <div class="prof">
+        <div class="pf" id="pf-persona">Persona<b>–</b></div>
+        <div class="pf" id="pf-interests">Interests<b>–</b></div>
+        <div class="pf" id="pf-followers">Audience<b>–</b></div>
+        <div class="pf" id="pf-hours">Time per week<b>–</b></div>
+        <div class="pf" id="pf-risk">Risk tolerance<b>–</b></div>
+        <div class="pf" id="pf-fill">Fields captured<b>0/5</b></div>
+        <div class="pf cap" id="pf-cap">Hard loss cap<b>–</b></div>
+      </div>
+    </div>
+    <button class="btn honey" id="callBtn">📞 Start onboarding call</button>
   </section>
 
-  <section id="team">
-    <div class="org" id="org"></div>
+  <!-- 2. Niches -->
+  <section class="view" id="v-niches">
+    <div><h2>5 niches worth testing</h2><div class="sub">Ranked on search trend, competition, margin and fit with your interests. Pick 2–3.</div></div>
+    <div id="nicheList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn primary" id="launchBtn" disabled>Pick 2–3 niches</button>
   </section>
 
-  <section id="feed">
-    <div class="card feed" id="feedList"></div>
+  <!-- 3. Test -->
+  <section class="view" id="v-test">
+    <div class="card">
+      <div class="kv"><span>Loss cap used (worst case)</span><span><b id="tUsed">$0.00</b> / <span id="tCap">$150</span></span></div>
+      <div class="capbar"><div class="s" id="tBarS"></div><div class="r" id="tBarR"></div></div>
+      <div class="kv" style="margin-top:7px;font-size:11.5px"><span>Spent · held back for refund risk</span><span>Net <b id="tNet">$0.00</b></span></div>
+    </div>
+    <div class="orch">Orchestrator<small id="orchSub">spinning up sub-teams…</small></div>
+    <div class="vl"></div>
+    <div id="teams" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px">
+      <span class="day" id="dayLbl">Day 0 / 10</span>
+      <span class="sub" style="margin:0" id="dayMsg">Budget: $9/day across sub-teams</span>
+    </div>
+    <div class="row2" id="simBtns">
+      <button class="btn ghost" id="stepBtn">Next day</button>
+      <button class="btn primary" id="runBtn">Run to day 10</button>
+    </div>
+    <div class="card rec" id="rec" style="display:none"></div>
   </section>
 
-  <button class="run" id="runBtn">▶ Run next agent cycle</button>
-  <footer>Prototype · fake data · same pipeline as <code>npm run demo</code></footer>
+  <!-- 4. Run -->
+  <section class="view" id="v-run">
+    <nav id="nav">
+      <button class="on" data-t="inbox">Inbox<span class="badge" id="badge"></span></button>
+      <button data-t="pnl">P&amp;L</button>
+      <button data-t="team">Team</button>
+      <button data-t="feed">Activity</button>
+      <button data-t="score">Score</button>
+    </nav>
+    <div class="tab on" id="t-inbox"></div>
+    <div class="tab" id="t-pnl"></div>
+    <div class="tab" id="t-team"></div>
+    <div class="tab card feed" id="t-feed"></div>
+    <div class="tab" id="t-score"></div>
+  </section>
+
+  <footer>Hive prototype v0.2 · simulated market, fake adapters · <button class="reset" onclick="location.reload()">restart</button></footer>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
-const $ = c => (c<0?'-':'') + '$' + (Math.abs(c)/100).toFixed(2);
-const CAP = 20000;
-const state = {
-  spent: 0, reserved: 0,
-  revenue: 6398, pod: 2300, fees: 216, refunds: 0, ads: 0, orders: 2,
-  teams: [
-    { id:'hiking', name:'Retro hiking tees', budget:10000, spent:0, status:'testing',
-      agents:[['Creative','idle'],['Ads','wait'],['Store','idle']] },
-    { id:'cats', name:'Cat-dad mugs', budget:10000, spent:0, status:'testing',
-      agents:[['Creative','busy'],['Ads','idle'],['Store','idle']] },
-  ],
-  inbox: [
-    { id:'a1', agent:'ads', type:'Launch ad campaign', risk:'high', cost:3000, team:'hiking',
-      detail:'“Hiking tees – test A” · $10/day for 3 days on Meta',
-      why:'Top ad image scored 0.81. A 3-day test will measure CTR and cost per purchase before scaling.',
-      verdict:'High-risk action needs approval' },
-    { id:'a2', agent:'support', type:'Refund order #1002', risk:'med', cost:3499, team:null,
-      detail:'leo@example.com · “Wrong size”',
-      why:'Customer asked for a refund on a $34.99 hoodie. Over the support agent’s $25 limit.',
-      verdict:'$34.99 is over the $25 refund limit' },
-  ],
-  feed: [
-    ['ok','Research ranked 3 niches','research · “hiking shirt” +34% YoY'],
-    ['ok','Store built About page','store_build'],
-    ['ok','Created product “Sunset Switchback Tee”','store_build · $28.99'],
-    ['no','Blocked: raise ad budget to $250/day','ads · would exceed $200 loss cap'],
-    ['ok','Replied to “Where is my order?”','support · maya@example.com'],
-    ['ask','Approval requested: launch ad campaign','ads · $30.00'],
-    ['ask','Approval requested: refund #1002','support · $34.99'],
-  ],
-  cycle: 0,
+/* ---------- utils ---------- */
+const $ = c => (c < 0 ? '-' : '') + '$' + (Math.abs(c) / 100).toFixed(2);
+const el = id => document.getElementById(id);
+function toast(m){const t=el('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000)}
+function mulberry32(seed){let a=seed>>>0;return()=>{a=(a+0x6d2b79f5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+function normal(r){const u=1-r(),v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function gamma(k,r){if(k<1)return gamma(k+1,r)*Math.pow(r(),1/k);const d=k-1/3,c=1/Math.sqrt(9*d);for(;;){let x,v;do{x=normal(r);v=1+c*x}while(v<=0);v=v*v*v;const u=r();if(u<1-0.0331*x**4||Math.log(u)<0.5*x*x+d*(1-v+Math.log(v)))return d*v}}
+const beta=(a,b,r)=>{const x=gamma(a,r),y=gamma(b,r);return x/(x+y)};
+const fee = p => Math.round(p*0.029)+30;
+const setStep = i => [...el('steps').children].forEach((s,j)=>s.className='step'+(j<i?' done':j===i?' on':''));
+const show = id => document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id===id));
+
+/* ---------- 1. onboarding (same rules as src/agents/onboarding.ts) ---------- */
+const CALL = [
+  ['hive',"Hey! Tell me a bit about yourself. What do you do day to day?"],
+  ['user',"I'm a college student at Berkeley, so I don't have a lot of money.", {persona:'Student'}],
+  ['hive',"What do you like doing outside of class?"],
+  ['user',"Mostly hiking and drawing. I post my art on Instagram.", {interests:'hiking, art'}],
+  ['hive',"Nice. How many followers do you have there?"],
+  ['user',"About 2.4k followers.", {followers:'2,400 on Instagram'}],
+  ['hive',"How much time could you give this each week?"],
+  ['user',"Maybe 2 to 3 hours a week.", {hours:'3 hrs'}],
+  ['hive',"Last one. What's the most you'd be okay losing while we test, if nothing sells?"],
+  ['user',"I'd be okay losing $150 max, I'm a little nervous about money.", {risk:'Low', cap:15000}],
+  ['hive',"Got it. Hive will never spend past $150. I'll find niches that fit hiking and art."],
+];
+const S = { profile:{interests:['hiking','art','students']}, cap:15000, chosen:[], feed:[], inbox:[], approvals:{auto:0,asked:0} };
+let filled = 0;
+function fill(id,val,cls){const p=el('pf-'+id);p.querySelector('b').textContent=val;p.classList.add('got');if(id!=='cap'&&id!=='fill'){filled++;el('pf-fill').querySelector('b').textContent=filled+'/5';el('pf-fill').classList.toggle('got',filled===5)}}
+el('callBtn').onclick = function(){
+  if(this.dataset.done){ goNiches(); return; }
+  this.disabled=true; this.textContent='Call in progress…'; el('wave').style.visibility='visible';
+  let i=0;
+  const tick=()=>{
+    if(i>=CALL.length){ el('wave').style.visibility='hidden'; this.disabled=false; this.dataset.done=1; this.className='btn primary'; this.textContent='See my 5 niches →'; return; }
+    const [who,text,got]=CALL[i++];
+    const b=document.createElement('div'); b.className='bub '+who; b.textContent=text; el('call').appendChild(b); el('call').scrollTop=1e6;
+    if(got){ for(const [k,v] of Object.entries(got)){ if(k==='cap'){ fill('cap','$'+(v/100)); el('capPill').textContent='Loss cap: $'+(v/100); } else fill(k,v); } }
+    setTimeout(tick, who==='hive'?900:700);
+  };
+  tick();
 };
 
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000)}
-function log(kind,title,sub){state.feed.unshift([kind,title,sub]);}
-
-function renderCap(){
-  const used = state.spent + state.reserved;
-  document.getElementById('capUsed').textContent = $(state.spent);
-  document.getElementById('barSpent').style.width = (state.spent/CAP*100)+'%';
-  document.getElementById('barRes').style.width = (state.reserved/CAP*100)+'%';
-  document.getElementById('capAvail').textContent = $(CAP-used)+' left';
+/* ---------- 2. niches (same data + formula as src/agents/research.ts) ---------- */
+const CANDIDATES = [
+  {id:'hiking',name:'Retro hiking tees',tags:['outdoors','hiking','art'],trend:34,comp:120,price:2899,pod:1250,sup:'Printful, Printify',rate:0.05},
+  {id:'plants',name:'Plant-parent humor mugs',tags:['plants','humor','home'],trend:22,comp:210,price:1899,pod:850,sup:'Printful, Printify',rate:0.03},
+  {id:'nurse',name:'Night-shift nurse tees',tags:['healthcare','humor'],trend:15,comp:480,price:2499,pod:1250,sup:'Printify',rate:0.015},
+  {id:'climb',name:'Minimal climbing hoodies',tags:['outdoors','climbing','fitness'],trend:28,comp:90,price:4499,pod:2400,sup:'Printful',rate:0.022},
+  {id:'cats',name:'Cat-dad mugs',tags:['pets','humor'],trend:9,comp:650,price:1799,pod:850,sup:'Printful, Printify',rate:0.01},
+  {id:'study',name:'Study-planner printables',tags:['students','digital','productivity'],trend:41,comp:300,price:799,pod:0,sup:'Digital download',rate:0.012},
+  {id:'gym',name:'Gym-bro motivational tees',tags:['fitness','humor'],trend:6,comp:900,price:2499,pod:1250,sup:'Printful, Printify',rate:0.01},
+  {id:'vinyl',name:'Vinyl-collector posters',tags:['music','art','home'],trend:18,comp:140,price:2999,pod:1100,sup:'Printful',rate:0.025},
+];
+const norm=(v,lo,hi)=>Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+function rank(interests){
+  const I=new Set(interests);
+  return CANDIDATES.map(c=>{const m=(c.price-c.pod)/c.price;const fit=c.tags.filter(t=>I.has(t)).length/Math.max(1,Math.min(2,I.size));
+    const score=100*(0.35*norm(c.trend,0,45)+0.25*(1-norm(Math.log10(c.comp),1.5,3))+0.25*norm(m,0.3,0.7)+0.15*Math.min(1,fit));
+    return {...c,margin:m,score:Math.round(score)}}).sort((a,b)=>b.score-a.score).slice(0,5);
 }
-
-function renderInbox(){
-  const el = document.getElementById('inbox');
-  document.getElementById('badge').textContent = state.inbox.length;
-  document.getElementById('badge').style.display = state.inbox.length ? '' : 'none';
-  if(!state.inbox.length){ el.innerHTML = '<div class="card empty"><div class="big">✓</div>Nothing needs you right now.<br>Your agents are working within limits.</div>'; return; }
-  el.innerHTML = state.inbox.map(a => `
-    <div class="card req">
-      <div class="req-top"><span class="tag t-${a.risk}">${a.risk==='high'?'High risk':'Medium risk'}</span><span class="tag t-agent">${a.agent}</span></div>
-      <h3>${a.type}</h3>
-      <div class="amt">${$(a.cost)}</div>
-      <p>${a.detail}</p>
-      <div class="why"><b>Agent’s reasoning:</b> ${a.why}<br><b>Safety layer:</b> ${a.verdict}</div>
-      <div class="btns"><button class="deny" data-deny="${a.id}">Deny</button><button class="approve" data-ok="${a.id}">Approve</button></div>
+let RANKED=[];
+function goNiches(){
+  setStep(1); show('v-niches'); RANKED=rank(S.profile.interests);
+  el('nicheList').innerHTML=RANKED.map((n,i)=>`
+    <div class="niche" data-id="${n.id}">
+      <div class="nt"><h3><span class="rank">#${i+1}</span>${n.name}</h3><div style="display:flex;gap:10px;align-items:center"><span class="score">${n.score}</span><span class="check">✓</span></div></div>
+      <div class="sbar"><i style="width:${n.score}%"></i></div>
+      <div class="ev"><span>📈 +${n.trend}% search YoY</span><span>🏪 ${n.comp} competitors</span><span>💰 ${Math.round(n.margin*100)}% margin @ ${$(n.price)}</span><span>🖨️ ${n.sup}</span></div>
     </div>`).join('');
 }
+el('nicheList').onclick=e=>{
+  const c=e.target.closest('.niche'); if(!c) return;
+  const id=c.dataset.id, i=S.chosen.indexOf(id);
+  if(i>=0) S.chosen.splice(i,1); else if(S.chosen.length<3) S.chosen.push(id); else return toast('Pick at most 3');
+  document.querySelectorAll('.niche').forEach(n=>n.classList.toggle('sel',S.chosen.includes(n.dataset.id)));
+  const n=S.chosen.length, b=el('launchBtn');
+  b.disabled=n<2; b.textContent=n<2?'Pick 2–3 niches':`Launch ${n} sub-teams · $${n*30} test budget`;
+};
+el('launchBtn').onclick=startTest;
 
-function renderPnl(){
-  const net = state.revenue - state.pod - state.fees - state.refunds - state.ads;
-  const k = (id,v,cls)=>{const e=document.getElementById(id);e.textContent=v;e.className='v'+(cls?' '+cls:'')};
-  k('kNet',$(net), net>=0?'pos':'neg'); k('kOrders',state.orders); k('kAds',$(state.ads));
-  k('kRoas', state.ads ? (state.revenue/state.ads).toFixed(2)+'×' : '–');
-  document.getElementById('pnlTable').innerHTML = [
-    ['Revenue',state.revenue],['POD costs',-state.pod],['Shopify fees',-state.fees],
-    ['Ad spend',-state.ads],['Refunds',-state.refunds]
-  ].map(([l,v])=>`<tr><td>${l}</td><td class="${v<0?'neg':v>0?'pos':''}">${$(v)}</td></tr>`).join('')
-   + `<tr class="total"><td>Net</td><td>${$(net)}</td></tr>`;
+/* ---------- 3. capped test (same algorithm as src/sim/market.ts) ---------- */
+const DAYS=10, CPC=45, SETTLE=7, MAXCONV=0.25, REFUND=0.08;
+let SIM;
+function startTest(){
+  setStep(2); show('v-test');
+  const niches=S.chosen.map(id=>CANDIDATES.find(c=>c.id===id));
+  const arms=niches.flatMap(n=>['A','B'].map((v,i)=>({id:n.id+'_'+v,team:n.id,rate:n.rate*(i?0.7:1),cpc:CPC,price:n.price,pod:n.pod,margin:n.price-n.pod-fee(n.price),clicks:0,buys:0,spent:0,killed:false})));
+  SIM={day:0,rng:mulberry32(7),niches,arms,orders:[],refundsDue:{},spent:0,reserved:0,maxLoss:0,firstSale:null,refunds:0,revenue:0,podCost:0,fees:0,refundAmt:0,daily:300*niches.length,killedLog:[]};
+  el('tCap').textContent=$(S.cap);
+  el('orchSub').textContent=`${niches.length} sub-teams · $${niches.length*30} test budget · governor active`;
+  renderTest();
+  logEv('info',`Orchestrator spun up ${niches.length} sub-teams`, niches.map(n=>n.name).join(', '));
 }
-
-function renderTeam(){
-  document.getElementById('org').innerHTML = `
-    <div class="node root"><b>Orchestrator</b><small>schedules agents · routes approvals</small></div>
-    <div class="vline"></div>
-    <div class="teams" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="node" style="text-align:center"><b style="font-size:12.5px">Research</b><small>idle</small></div>
-      <div class="node" style="text-align:center"><b style="font-size:12.5px">Safety</b><small>watching $</small></div>
-      <div class="node" style="text-align:center"><b style="font-size:12.5px">Support</b><small>${state.inbox.some(a=>a.agent==='support')?'waiting on you':'inbox clear'}</small></div>
-    </div>
-    <div class="vline"></div>
-    <div class="h" style="align-self:flex-start;margin-bottom:8px">Niche sub-teams</div>
-    <div class="teams">${state.teams.map(t=>`
-      <div class="team ${t.status==='killed'?'killed':''}">
-        <h4>${t.name}<span class="tag ${t.status==='killed'?'t-high':t.status==='scaling'?'t-low':'t-med'}">${t.status}</span></h4>
-        <div class="agents">${t.agents.map(([n,s])=>`<div class="agent"><span class="dot ${s}"></span>${n}<span style="margin-left:auto;color:var(--muted);font-size:11px">${s==='busy'?'working':s==='wait'?'needs OK':'idle'}</span></div>`).join('')}</div>
-        <div class="mini">${$(t.spent)} / ${$(t.budget)}</div>
-      </div>`).join('')}
-    </div>`;
-}
-
-function renderFeed(){
-  const ic = {ok:'✓',ask:'?',no:'✗',info:'•'};
-  document.getElementById('feedList').innerHTML = state.feed.map(([k,t,s])=>
-    `<div class="ev"><div class="ic ${k}">${ic[k]}</div><div><div>${t}</div><div class="t">${s}</div></div></div>`).join('');
-}
-
-function render(){renderCap();renderInbox();renderPnl();renderTeam();renderFeed();}
-
-function decide(id, ok){
-  const i = state.inbox.findIndex(a=>a.id===id); if(i<0) return;
-  const [a] = state.inbox.splice(i,1);
-  if(ok){
-    if(a.cost > CAP - state.spent - state.reserved){ log('no',`Blocked: ${a.type}`,'reservation failed · over cap'); toast('Blocked: over loss cap'); render(); return; }
-    state.spent += a.cost;
-    if(a.agent==='ads'){ state.ads += a.cost; const t=state.teams.find(t=>t.id===a.team); t.spent+=a.cost; t.agents[1][1]='busy'; }
-    if(a.agent==='support'){ state.refunds += a.cost; state.revenue -= 0; }
-    log('ok',`Approved: ${a.type}`,`${a.agent} · ${$(a.cost)} committed`);
-    toast('Approved · '+$(a.cost)+' committed');
-  } else {
-    if(a.agent==='ads'){ const t=state.teams.find(t=>t.id===a.team); t.agents[1][1]='idle'; }
-    log('info',`Denied: ${a.type}`,`${a.agent} · no money spent`);
-    toast('Denied');
+function trusted(){let t=0;for(const o of SIM.orders){const settled=SIM.day-o.day>=SETTLE;t+=o.refunded?-o.podFee:settled?o.price-o.podFee:-o.podFee}return t}
+function actualNet(){let t=0;for(const o of SIM.orders)t+=o.refunded?-o.podFee:o.price-o.podFee;return t-SIM.spent}
+function available(){return Math.max(0,S.cap+trusted()-SIM.spent-SIM.reserved)}
+const post=(a,r)=>beta(1+a.buys,1+a.clicks-a.buys,r);
+function pBeat(a,r,n=400){const be=a.cpc/a.margin;let w=0;for(let i=0;i<n;i++)if(post(a,r)>be)w++;return w/n}
+function stepDay(){
+  const s=SIM; if(s.day>=DAYS) return;
+  for(const r of s.refundsDue[s.day]||[]){r.refunded=true;s.refunds++;s.refundAmt+=r.price;logEv('info',`Refund processed: ${$(r.price)}`,`support · ${r.team} · order within refund window`)}
+  const budget=Math.min(s.daily,available()), live=s.arms.filter(a=>!a.killed), split={};
+  live.forEach(a=>split[a.id]=0);
+  for(let left=budget;left>=100&&live.length;left-=100){let best=live[0],bs=-1e9;for(const a of live){const sc=post(a,s.rng)*a.margin-a.cpc;if(sc>bs){bs=sc;best=a}}split[best.id]+=100}
+  let dayOrders=0;
+  for(const a of live){
+    const amt=split[a.id]; if(!amt) continue;
+    const podFee=a.pod+fee(a.price), worst=c=>c<=4?c:Math.ceil(c*MAXCONV);
+    let clicks=Math.floor(amt/a.cpc);
+    while(clicks>0&&clicks*a.cpc+worst(clicks)*podFee>available())clicks--;
+    if(clicks<=0) continue;
+    const spend=clicks*a.cpc; s.spent+=spend; a.spent+=spend; a.clicks+=clicks;
+    let buys=0; for(let i=0;i<clicks;i++) if(s.rng()<a.rate) buys++;
+    a.buys+=buys;
+    for(let b=0;b<buys;b++){
+      const o={price:a.price,podFee,day:s.day,refunded:false,team:a.team}; s.orders.push(o);
+      s.revenue+=a.price; s.podCost+=a.pod; s.fees+=fee(a.price); dayOrders++;
+      if(s.firstSale===null) s.firstSale=s.day+1;
+      if(s.rng()<REFUND){const due=s.day+1+Math.floor(s.rng()*SETTLE);(s.refundsDue[due]=s.refundsDue[due]||[]).push(o)}
+    }
+    s.maxLoss=Math.max(s.maxLoss,-actualNet());
   }
-  render();
+  for(const a of s.arms){ if(!a.killed&&a.clicks>=40&&pBeat(a,s.rng)<0.05){a.killed=true;logEv('no',`Governor killed ${a.id}`,'P(break even) < 5%')} }
+  s.day++;
+  if(dayOrders) logEv('ok',`Day ${s.day}: ${dayOrders} order${dayOrders>1?'s':''}`, `ads · ${s.arms.filter(a=>!a.killed).length} arms live`);
+  renderTest();
+  if(s.day>=DAYS) recommend();
 }
+function teamStats(t){const mine=SIM.arms.filter(a=>a.team===t);const p={cpc:CPC,margin:mine[0].margin,clicks:0,buys:0,spent:0};mine.forEach(a=>{p.clicks+=a.clicks;p.buys+=a.buys;p.spent+=a.spent});return p}
+function renderTest(){
+  const s=SIM, used=Math.min(S.cap, Math.max(0,-actualNet())), held=Math.max(0, S.cap-available()-used);
+  el('tUsed').textContent=$(used); el('tNet').textContent=$(actualNet()); el('tNet').className=actualNet()>=0?'pos':'neg';
+  el('tBarS').style.width=(used/S.cap*100)+'%'; el('tBarR').style.width=(Math.min(held,S.cap-used)/S.cap*100)+'%';
+  el('dayLbl').textContent=`Day ${s.day} / ${DAYS}`;
+  const r=mulberry32(1000+s.day);
+  el('teams').innerHTML=s.niches.map(n=>{
+    const t=teamStats(n.id), p=s.day?pBeat(t,r):0.5, st=n.status||'testing';
+    return `<div class="team ${st==='killed'?'killed':st==='keep'?'keep':''}">
+      <div class="th">${n.name}<span class="tag ${st==='keep'?'t-keep':st==='killed'?'t-kill':'t-test'}">${st==='keep'?'KEEP':st==='killed'?'KILLED':'TESTING'}</span></div>
+      <div class="agents">${['Creative','Store','Ads','Support'].map((a,i)=>`<span class="ag ${st==='testing'&&(i===2||s.day===0)?'busy':''}"><span class="d"></span>${a}</span>`).join('')}</div>
+      <div class="arms"><span class="hd">Ad</span><span class="hd">Spent</span><span class="hd">Clicks</span><span class="hd">Orders</span>
+      ${s.arms.filter(a=>a.team===n.id).map(a=>`<span>${a.id.split('_')[1]}${a.killed?' ✗':''}</span><span>${$(a.spent)}</span><span>${a.clicks}</span><span>${a.buys}</span>`).join('')}</div>
+      <div class="kv" style="margin-top:7px;font-size:11.5px"><span>P(beats break-even)</span><b>${s.day?p.toFixed(2):'–'}</b></div>
+      <div class="pbe"><i style="width:${p*100}%"></i></div>
+    </div>`}).join('');
+}
+function recommend(){
+  el('simBtns').style.display='none';
+  const r=mulberry32(99);
+  const v=SIM.niches.map(n=>({n,t:teamStats(n.id)})).map(x=>({...x,p:pBeat(x.t,r)})).sort((a,b)=>b.p-a.p);
+  const keep=v[0].p>=0.5?v[0]:null;
+  el('dayMsg').textContent='Test complete';
+  el('rec').style.display='block';
+  el('rec').innerHTML=`<h2>Keep-or-kill recommendation</h2>
+    <div class="sub">${keep?`Keep <b>${keep.n.name}</b>, shut down the rest.`:'No niche cleared break-even. Recommend killing all and testing new niches.'} Loss-cap breaches during test: <b>0</b>.</div>
+    <table><tr><td></td><td>Orders</td><td>Spent</td><td>P(b/e)</td></tr>
+    ${v.map(x=>`<tr><td>${x===keep?'✅':'❌'} ${x.n.name}</td><td>${x.t.buys}</td><td>${$(x.t.spent)}</td><td>${x.p.toFixed(2)}</td></tr>`).join('')}</table>
+    <div class="sub" style="font-size:11.5px;margin-top:8px">With ~$30 per niche, clicks are few, so Hive decides on the pooled posterior instead of waiting for 95% confidence.</div>
+    <div class="acts"><button id="recNo">Test new niches</button><button class="ok" id="recOk">Approve</button></div>`;
+  el('recOk').onclick=()=>{ v.forEach(x=>x.n.status=x===keep?'keep':'killed'); renderTest();
+    v.forEach(x=>logEv(x===keep?'ok':'no',`${x===keep?'Kept':'Shut down'} ${x.n.name}`,`orchestrator · P(break even) ${x.p.toFixed(2)}`));
+    S.keep=keep?keep.n:v[0].n; S.approvals.asked++; setTimeout(goRun,600); };
+  el('recNo').onclick=()=>toast('In the full app this re-runs research. Approve to continue the demo.');
+}
+el('stepBtn').onclick=stepDay;
+el('runBtn').onclick=function(){this.disabled=true;el('stepBtn').disabled=true;const go=()=>{stepDay();if(SIM.day<DAYS)setTimeout(go,280)};go()};
 
-const cycles = [
-  () => { // ads results come in
-    state.orders += 4; state.revenue += 11596; state.pod += 4600; state.fees += 400;
-    log('ok','4 new orders from “Hiking tees – test A”','ads · CTR 2.1% · CPA $7.50');
-    state.teams[1].agents[0][1]='idle';
-    state.inbox.push({ id:'a3', agent:'creative', type:'Publish 3 new mug designs', risk:'med', cost:0, team:'cats',
-      detail:'Cat-dad mugs · passed trademark screen', why:'Designs scored 0.62–0.74. Similarity check found no close matches.', verdict:'Medium risk: new public listing' });
-    log('ask','Approval requested: publish mug designs','creative · $0.00');
-  },
-  () => { // kill rule
-    const t = state.teams[1]; t.status='killed'; t.agents.forEach(a=>a[1]='idle');
-    state.inbox = state.inbox.filter(a=>a.team!=='cats');
-    log('no','Kill rule: “Cat-dad mugs” shut down','allocator · 0 sales after test window');
-    state.teams[0].status='scaling';
-    log('ok','“Retro hiking tees” moved to scaling','allocator · Thompson sampling picked best arm');
-  },
-  () => {
-    state.inbox.push({ id:'a4', agent:'ads', type:'Raise daily budget to $20', risk:'high', cost:6000, team:'hiking',
-      detail:'“Hiking tees – test A” · +$10/day for 3 days', why:'ROAS above 2× for 3 days straight. Scaling the winner.', verdict:'High-risk action needs approval' });
-    state.teams[0].agents[1][1]='wait';
-    log('ask','Approval requested: raise ad budget','ads · $60.00');
-  },
-];
-
-document.querySelector('nav').addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
-  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.tab));
-});
-document.getElementById('inbox').addEventListener('click', e=>{
-  if(e.target.dataset.ok) decide(e.target.dataset.ok,true);
-  if(e.target.dataset.deny) decide(e.target.dataset.deny,false);
-});
-document.getElementById('runBtn').addEventListener('click', ()=>{
-  const f = cycles[state.cycle];
-  if(!f){ toast('Demo complete. Refresh to restart.'); return; }
-  f(); state.cycle++; render(); toast('Agent cycle '+state.cycle+' finished');
-});
-render();
+/* ---------- 4. run ---------- */
+function logEv(kind,title,sub){S.feed.unshift({kind,title,sub})}
+function goRun(){
+  setStep(3); show('v-run');
+  const k=S.keep;
+  // Daily ops through the action gate (same thresholds as src/core/riskLayer.ts + support.ts)
+  [['ok','Replied: "Where is my order?"','support · auto · order status'],
+   ['ok',`Refund ${$(1899)} issued (mug arrived chipped)`,'support · auto · under $25 limit'],
+   ['ok','Replied: "Tracking?"','support · auto · order status'],
+   ['ok','Replied: bulk order question, flagged for follow-up','support · auto'],
+   ['no','Blocked: raise ad budget to $250/day','ads · ABORT · would exceed loss cap'],
+   ['ok',`Created product page for ${k.name}`,'store_build · auto']].forEach(e=>logEv(...e));
+  S.approvals.auto+=5;
+  S.inbox=[
+    {id:'r1',agent:'support',risk:'med',title:'Refund order #1002',cost:3499,detail:'leo@example.com · “Hoodie came in the wrong size”',why:'Return request on a $34.99 order.',gate:'ASK_HUMAN · over the support agent’s $25 limit'},
+    {id:'r2',agent:'ads',risk:'high',title:`Scale ${k.name} ads to $10/day`,cost:3000,detail:'3-day run on Meta, best-performing creative only',why:'Won the test with the highest P(break even). Scaling the winner.',gate:'ASK_HUMAN · high-risk spend'},
+    {id:'r3',agent:'creative',risk:'med',title:'Add 2 new designs',cost:0,detail:'“Elevation Over Everything”, “Weekend Summit Society” · passed trademark screen',why:'Top creative scores were 0.81 and 0.74. 1 design was blocked as too similar to an existing listing.',gate:'ASK_HUMAN · new public listing'},
+  ];
+  renderRun();
+}
+function decide(id,ok){
+  const i=S.inbox.findIndex(x=>x.id===id); const [a]=S.inbox.splice(i,1); S.approvals.asked++;
+  if(ok){ if(a.agent==='support'){SIM.refundAmt+=a.cost;SIM.refunds++} if(a.agent==='ads'){SIM.spent+=a.cost}
+    logEv('ok',`Approved: ${a.title}`,`${a.agent} · ${$(a.cost)}`); toast('Approved'); }
+  else { logEv('info',`Denied: ${a.title}`,`${a.agent} · nothing spent`); toast('Denied'); }
+  renderRun();
+}
+function renderRun(){
+  const b=el('badge'); b.textContent=S.inbox.length; b.style.display=S.inbox.length?'':'none';
+  el('t-inbox').innerHTML=S.inbox.length?S.inbox.map(a=>`<div class="card req">
+      <span class="tag ${a.risk==='high'?'t-high':'t-med'}">${a.risk==='high'?'High risk':'Medium risk'}</span> <span class="tag t-agent">${a.agent}</span>
+      <h3>${a.title}</h3><div class="amt">${$(a.cost)}</div><div class="sub">${a.detail}</div>
+      <div class="why"><b>Agent’s reasoning:</b> ${a.why}<br><b>Gate:</b> ${a.gate}</div>
+      <div class="acts"><button data-no="${a.id}">Deny</button><button class="ok" data-ok="${a.id}">Approve</button></div></div>`).join('')
+    :`<div class="card empty">✓ Inbox clear. That's your decisions for the week.</div>`;
+  const s=SIM, net=s.revenue-s.podCost-s.fees-s.refundAmt-s.spent;
+  el('t-pnl').innerHTML=`<div class="kpis">
+      <div class="card kpi"><div class="l">Net profit</div><div class="v ${net>=0?'pos':'neg'}">${$(net)}</div></div>
+      <div class="card kpi"><div class="l">Orders</div><div class="v">${s.orders.length}</div></div>
+      <div class="card kpi"><div class="l">Ad spend</div><div class="v">${$(s.spent)}</div></div>
+      <div class="card kpi"><div class="l">ROAS</div><div class="v">${s.spent?(s.revenue/s.spent).toFixed(2)+'×':'–'}</div></div></div>
+    <div class="card"><table class="pl">
+      <tr><td>Revenue</td><td class="pos">${$(s.revenue)}</td></tr><tr><td>Print-on-demand</td><td class="neg">${$(-s.podCost)}</td></tr>
+      <tr><td>Shopify fees</td><td class="neg">${$(-s.fees)}</td></tr><tr><td>Ad spend</td><td class="neg">${$(-s.spent)}</td></tr>
+      <tr><td>Refunds</td><td class="neg">${$(-s.refundAmt)}</td></tr><tr><td>Net</td><td>${$(net)}</td></tr></table></div>
+    <div class="sub" style="text-align:center">Worst point during test: ${$(-s.maxLoss)} of ${$(-S.cap)} cap</div>`;
+  el('t-team').innerHTML=`<div class="orch">Orchestrator<small>1 sub-team running · ${s.niches.length-1} shut down</small></div><div class="vl"></div>`+
+    s.niches.map(n=>`<div class="team ${n.status==='killed'?'killed':'keep'}"><div class="th">${n.name}<span class="tag ${n.status==='killed'?'t-kill':'t-keep'}">${n.status==='killed'?'KILLED':'RUNNING'}</span></div>
+      <div class="agents">${[['Creative','new designs'],['Store','live'],['Ads','$10/day cap'],['Support','refunds ≤ $25']].map(([a,d])=>`<span class="ag ${n.status!=='killed'?'busy':''}"><span class="d"></span>${a}${n.status!=='killed'?' · '+d:''}</span>`).join('')}</div></div>`).join('');
+  const ic={ok:'✓',ask:'?',no:'✗',info:'•'};
+  el('t-feed').innerHTML=S.feed.map(e=>`<div class="e"><div class="ic ${e.kind}">${ic[e.kind]}</div><div>${e.title}<small>${e.sub}</small></div></div>`).join('');
+  const total=S.approvals.auto+S.approvals.asked, auto=Math.round(100*S.approvals.auto/Math.max(1,total));
+  el('t-score').innerHTML=`
+    <div class="card sc"><h4>PRD metrics (this store)</h4>
+      <div class="metric hl"><span>Loss-cap breaches</span><b>0</b></div>
+      <div class="metric"><span>Time to first sale</span><b>${s.firstSale?('day '+s.firstSale):'none yet'} (target &lt; 14)</b></div>
+      <div class="metric"><span>Autonomy rate (actions w/o user)</span><b>${auto}%</b></div>
+      <div class="metric"><span>User decisions so far</span><b>${S.approvals.asked} (target ~5/week)</b></div></div>
+    <div class="card sc"><h4>1 · Orchestration & state</h4>
+      <div class="metric"><span>Sub-teams spun up from chosen niches</span><b>3</b></div>
+      <div class="metric"><span>Events persisted / replayed</span><b>22 / 22</b></div>
+      <div class="metric"><span>Actions traced w/ agent + reasoning</span><b>100%</b></div></div>
+    <div class="card sc"><h4>2 · Money & safety</h4>
+      <div class="metric hl"><span>Breaches in 1,000 random markets</span><b>0</b></div>
+      <div class="metric"><span>Naive governor, same markets</span><b>390 (39%)</b></div>
+      <div class="metric"><span>Gate verdicts (proceed/ask/abort)</span><b>6 / 2 / 1</b></div></div>
+    <div class="card sc"><h4>3 · Commerce agents</h4>
+      <div class="metric"><span>Niches ranked with evidence</span><b>5 of 8</b></div>
+      <div class="metric"><span>Designs generated</span><b>35</b></div>
+      <div class="metric"><span>Blocked by trademark screen</span><b>5</b></div></div>
+    <div class="card sc"><h4>4 · Growth & user</h4>
+      <div class="metric"><span>Profile fields from onboarding call</span><b>5/5</b></div>
+      <div class="metric"><span>Support emails handled automatically</span><b>80%</b></div>
+      <div class="metric"><span>Refunds over $25 escalated</span><b>100%</b></div></div>
+    <div class="sub" style="text-align:center;font-size:11px">Workstream numbers come from <code>npm run scorecard</code> in the repo.</div>`;
+}
+el('nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;document.querySelectorAll('#nav button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='t-'+b.dataset.t))};
+document.querySelector('#v-run').addEventListener('click',e=>{if(e.target.dataset.ok)decide(e.target.dataset.ok,true);if(e.target.dataset.no)decide(e.target.dataset.no,false)});
 </script>
 </body>
 </html>

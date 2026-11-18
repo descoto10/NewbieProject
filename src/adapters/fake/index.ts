@@ -13,6 +13,8 @@ export class FakeShopify implements ShopifyAdapter {
   orders = [
     { id: 'ord_1001', totalCents: 2899, status: 'paid' },
     { id: 'ord_1002', totalCents: 3499, status: 'paid' },
+    { id: 'ord_1003', totalCents: 1899, status: 'paid' },
+    { id: 'ord_1004', totalCents: 2899, status: 'paid' },
   ];
   async createPage(title: string) { const p = { id: id('page'), title }; this.pages.push(p); return p; }
   async createProduct(title: string, priceCents: number) {
@@ -51,7 +53,10 @@ export class FakeEmail implements EmailAdapter {
   async inbox() {
     return [
       { from: 'maya@example.com', subject: 'Where is my order?', body: 'Ordered 5 days ago', orderId: 'ord_1001' },
-      { from: 'leo@example.com', subject: 'Refund please', body: 'Wrong size', orderId: 'ord_1002' },
+      { from: 'leo@example.com', subject: 'Refund please', body: 'Hoodie came in the wrong size', orderId: 'ord_1002' },
+      { from: 'sam@example.com', subject: 'Mug arrived chipped', body: 'Can I get a refund?', orderId: 'ord_1003' },
+      { from: 'ana@example.com', subject: 'Tracking?', body: "Package hasn't arrived yet", orderId: 'ord_1004' },
+      { from: 'jo@example.com', subject: 'Custom order', body: 'Do you do bulk orders for my hiking club?' },
     ];
   }
 }

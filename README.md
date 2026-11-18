@@ -1,66 +1,76 @@
-# agent-store
+# Hive: AI-run one-person company
 
-An autonomous team of AI agents that researches niches, builds a print-on-demand Shopify store, runs ads and handles customer support. A safety layer keeps humans in control of money.
+Hive runs a small online business for you. A voice agent interviews you, a research agent proposes niches, and an orchestrator spins up an AI sub-team per niche to test it cheaply. It keeps what sells, kills the rest, and **never spends past your loss cap**.
 
-**Status: Week 1, shared contract + working skeleton on fake adapters.**
+> "Set a budget you're willing to lose. Hive finds something that sells, runs it, and never spends past your cap."
 
-## Quick start
+**Status: prototype v0.2.** Every MVP layer has a working first slice on fake adapters, with tests and a measurable result.
+
+## Run it
 
 ```bash
-npm install        # only needed for typecheck
-npm run demo       # Node 22.18+, runs with zero dependencies
-npm run typecheck
+npm run demo        # the full PRD user journey in the terminal
+npm run scorecard   # one measurable result per workstream
+npm test            # 17 tests, including a 1,000-market loss-cap fuzz test
+npm run typecheck   # needs `npm install` once
+open web/prototype.html   # clickable mobile prototype (Windows: start web\prototype.html)
 ```
 
-The demo runs 4 stub agents through the full pipeline:
+Needs Node 22.18+. No other dependencies.
+
+## Week 1 scorecard
+
+| Workstream | Measurable result |
+|---|---|
+| **1. Orchestration & state** | 3 sub-teams spun up from chosen niches · 22/22 events persisted to disk and replayed · 100% of actions traced with agent + reasoning |
+| **2. Money & safety** | **0 loss-cap breaches in 1,000 random markets** vs **390 (39%)** for a naive governor · action gate: 6 proceed / 2 ask / 1 abort |
+| **3. Commerce agents** | 5 ranked niches with 4 evidence items each · 35 designs across 8 niches · 5 blocked by trademark/similarity screen |
+| **4. Growth & user** | 5/5 profile fields pulled from the onboarding call, loss cap set to $150 · 80% of support emails handled without the user · refunds over $25 escalated |
+
+## How it fits together
 
 ```
-agent.run() -> Action[] -> risk layer -> PROCEED  -> spend governor reserves $ -> adapter executes -> event
-                                      -> ASK_HUMAN -> decision inbox -> user approves/denies
-                                      -> ABORT     -> logged with reason
+voice call ─► profile + loss cap ─► research: 5 ranked niches ─► user picks 2-3
+                                                                    │
+            ┌───────────────────── orchestrator ◄───────────────────┘
+            ▼            (one sub-team per niche, event-sourced log)
+  creative ─► store build ─► ads test ─► keep or kill ─► daily ops (support, ads)
+                                   │
+              every action ─► risk layer ─► PROCEED ─► spend governor ─► adapter
+                                         ─► ASK_HUMAN ─► decision inbox
+                                         ─► ABORT ─► logged
 ```
 
-Things the demo shows:
-- An ad campaign launch (high risk) waits for human approval
-- An oversized budget increase gets **aborted** because it would break the $200 loss cap
-- A $34.99 refund is sent to a human because the support agent's limit is $25
-- Every action is traced with its agent, reasoning and evidence
-
-## Repo layout
+## What each part does
 
 | Path | What | Owner |
 |---|---|---|
-| `db/schema.sql` | v0 Postgres schema (16 tables) | Person 1 |
-| `src/contract/actions.ts` | Action interface, risk tiers, verdicts | Person 2 |
-| `src/contract/agents.ts` | `Agent.run(ctx) -> Action[]`, tools, permissions | All |
-| `src/contract/adapters.ts` | Shopify / POD / Ads / Email interfaces | Person 1 |
-| `src/contract/events.ts` | Event names the frontend subscribes to | Person 1 + 4 |
-| `src/adapters/fake/` | In-memory fakes so everyone can build now | Person 1 |
-| `src/core/orchestrator.ts` | Runs agents, routes verdicts, executes | Person 1 |
-| `src/core/riskLayer.ts` | Classify, simulate, route | Person 2 |
-| `src/core/spendGovernor.ts` | Reservation ledger + loss cap | Person 2 |
-| `src/agents/fakeAgents.ts` | Stub agents to replace with LLM-backed ones | Person 3 + 4 |
-| `web/prototype.html` | Clickable mobile prototype (inbox, P&L, org chart) | Person 4 |
+| `src/core/eventLog.ts` | Append-only JSONL event log with replay | 1 |
+| `src/core/orchestrator.ts` | Sub-team spin-up/kill, runs agents, routes verdicts | 1 |
+| `src/core/spendGovernor.ts` | Hard loss-cap invariant (see below) | 2 |
+| `src/core/allocator.ts` | Thompson sampling over product-creative pairs + kill rule | 2 |
+| `src/core/pnl.ts` | P&L from orders, ad spend, POD, refunds, fees | 2 |
+| `src/core/riskLayer.ts` | Classify, simulate, PROCEED / ASK_HUMAN / ABORT | 2 |
+| `src/sim/market.ts` | Market simulator + random market generator for fuzzing | 2 |
+| `src/agents/research.ts` | Scores candidates on trend, competition, margin, fit | 3 |
+| `src/agents/creative.ts` | 3-5 designs per niche, trademark + look-alike screen | 3 |
+| `src/agents/onboarding.ts` | Call transcript → profile + loss cap | 4 |
+| `src/agents/support.ts` | Email triage, refunds ≤ $25 automatic | 4 |
+| `web/prototype.html` | Clickable mobile prototype of the full journey | 4 |
+| `src/contract/*`, `db/schema.sql` | Shared contract (change by PR only) | All |
 
-## Workstreams
+## The loss-cap invariant (and the bug the fuzz test found)
 
-1. **Orchestration & state (Person 1):** Postgres + migrations, event log, workflows, adapter fakes, agent tracing
-2. **Money & safety (Person 2):** spend governor, risk layer, permissions, Thompson sampling allocator, P&L, market simulator, week 6 gate
-3. **Commerce agents (Person 3):** research, store build, product/creative, trademark screening, real Shopify + Printful adapters
-4. **Growth & user (Person 4):** voice onboarding, ads agent + Meta adapter, support agent, mobile web app, demo
+`spent − order profit ≤ loss cap`, at every moment, enforced outside any LLM.
 
-## Week 1 checklist
+The first version broke the cap in 99 of 1,000 random markets. Orders bring in profit, but a refund takes it back and Hive still eats the print-on-demand cost. The governor now:
+1. trusts profit only from orders past the refund window; pending orders count at their worst case (refunded)
+2. reserves the worst-case POD cost of orders an ad spend *could* create before spending, then releases it
 
-- [x] Agree on schema, Action, Agent, Adapter and Event contracts
-- [x] Skeleton: fake agent -> action -> risk layer -> event
-- [ ] Meta developer app + ad account (slow approval, start now)
-- [ ] Shopify Partner account + dev store
-- [ ] Printful / Printify API keys
-- [ ] Domain + voice platform account
-- [ ] Postgres running locally (docker) with `db/schema.sql` applied
+That answers a PRD open question: **the loss cap includes supplier costs on refunded orders.**
 
-## Rules
+## Honest limits / next steps
 
-- Agents never call vendor SDKs directly. They go through adapters.
-- Contract changes (`src/contract`, `db/schema.sql`) need a PR reviewed by at least one other person.
-- Every new real adapter ships with its fake.
+- **Signal at $30 per niche is thin.** The kill rule needs about 110 clicks with no sales for 95% confidence, so mid-test kills rarely fire at PRD budgets. Keep-or-kill uses the pooled posterior instead. Shared priors across stores (PRD) are the real fix.
+- All agents are rule-based v0s on fake data. Next: Claude-backed research + creative, real Shopify/Printful/Meta adapters, Postgres instead of JSONL.
+- Week 6 gate: no real ad money until the governor runs a real capped test with zero breaches.

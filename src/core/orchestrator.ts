@@ -10,6 +10,15 @@ import type { EventBus } from './eventBus.ts';
 import { evaluate } from './riskLayer.ts';
 import type { SpendGovernor } from './spendGovernor.ts';
 
+export interface SubTeam {
+  id: string;
+  nicheId: string;
+  nicheName: string;
+  budgetCents: number;
+  status: 'testing' | 'scaling' | 'killed';
+  agents: string[];
+}
+
 export class Orchestrator {
   pendingApprovals: ClassifiedAction[] = [];
   trace: ClassifiedAction[] = [];
@@ -46,6 +55,30 @@ export class Orchestrator {
         this.bus.emit(Events.ApprovalRequested, { id: c.id, type: c.type, costCents: c.costCents });
       } else this.bus.emit(Events.ActionAborted, { id: c.id, reason: c.verdictReason });
     }
+  }
+
+  subTeams = new Map<string, SubTeam>();
+
+  /** One sub-team per chosen niche, each with its own slice of the test budget. */
+  spinUpSubTeams(niches: { id: string; name: string }[], totalTestBudgetCents: number): SubTeam[] {
+    const each = Math.floor(totalTestBudgetCents / niches.length);
+    return niches.map(n => {
+      const team: SubTeam = {
+        id: `team_${n.id}`, nicheId: n.id, nicheName: n.name, budgetCents: each,
+        status: 'testing', agents: ['creative', 'store_build', 'ads', 'support'],
+      };
+      this.subTeams.set(team.id, team);
+      this.governor.setSubTeamBudget(team.id, each);
+      this.bus.emit(Events.SubTeamCreated, { ...team });
+      return team;
+    });
+  }
+
+  killSubTeam(id: string, reason: string) {
+    const t = this.subTeams.get(id);
+    if (!t || t.status === 'killed') return;
+    t.status = 'killed';
+    this.bus.emit(Events.SubTeamKilled, { id, reason });
   }
 
   async decide(actionId: string, approved: boolean) {

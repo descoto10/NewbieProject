@@ -1,12 +1,14 @@
 {
-  "name": "agent-store",
-  "version": "0.1.0",
+  "name": "hive",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Autonomous AI agent org that researches niches, builds POD stores, runs ads and support, with a human-in-the-loop safety layer.",
+  "description": "Hive: an AI-run one-person company. Agent sub-teams test niches, keep what sells, and never spend past the user's loss cap.",
   "engines": { "node": ">=22.18" },
   "scripts": {
     "demo": "node src/demo.ts",
+    "scorecard": "node src/scorecard.ts",
+    "test": "node --test \"tests/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

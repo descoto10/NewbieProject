@@ -1,0 +1,16 @@
+{
+  "name": "agent-store",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous AI agent org that researches niches, builds POD stores, runs ads and support, with a human-in-the-loop safety layer.",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "demo": "node src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

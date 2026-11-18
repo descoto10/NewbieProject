@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Store – Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f3ef; --card:#ffffff; --ink:#1b1b1a; --muted:#6f6d66; --line:#e4e2db;
+    --accent:#2f5d50; --accent-soft:#e3ece8; --warn:#b5651d; --warn-soft:#f7ebdf;
+    --bad:#a8322d; --bad-soft:#f6e1df; --good:#2f7a4a; --good-soft:#e1f0e6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+       display:flex;justify-content:center;min-height:100vh;padding:24px 12px}
+  .phone{width:100%;max-width:400px;background:var(--bg);display:flex;flex-direction:column;gap:14px}
+  header{display:flex;justify-content:space-between;align-items:flex-end;padding:4px 4px 0}
+  header h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  header .sub{font-size:13px;color:var(--muted);margin-top:2px}
+  .pill{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+  .cap{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .cap-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+  .cap-row b{color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:500}
+  .bar{height:8px;background:var(--line);border-radius:99px;margin-top:10px;overflow:hidden;display:flex}
+  .bar .spent{background:var(--accent);transition:width .4s}
+  .bar .res{background:#9bb8ad;transition:width .4s}
+  nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
+  nav button{border:0;background:none;font:inherit;font-size:13px;font-weight:500;color:var(--muted);padding:8px 0;border-radius:9px;cursor:pointer;position:relative}
+  nav button.on{background:var(--ink);color:#fff}
+  nav .badge{position:absolute;top:3px;right:8px;background:var(--warn);color:#fff;font-size:10px;font-weight:700;border-radius:99px;min-width:16px;height:16px;line-height:16px}
+  section{display:none;flex-direction:column;gap:10px}
+  section.on{display:flex}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
+  .t-high{background:var(--bad-soft);color:var(--bad)} .t-med{background:var(--warn-soft);color:var(--warn)}
+  .t-low{background:var(--good-soft);color:var(--good)}
+  .t-agent{background:#eeede8;color:var(--muted);font-family:'JetBrains Mono',monospace}
+  .req-top{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .req h3{font-size:15px;font-weight:600;margin-bottom:4px}
+  .req .amt{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0}
+  .req p{font-size:13px;color:var(--muted);line-height:1.45}
+  .why{margin-top:8px;padding:9px 10px;background:var(--bg);border-radius:8px;font-size:12.5px;line-height:1.45}
+  .why b{font-weight:600}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .btns button{font:inherit;font-size:14px;font-weight:600;padding:11px;border-radius:10px;cursor:pointer;border:1px solid var(--line)}
+  .approve{background:var(--accent);color:#fff;border-color:var(--accent)!important}
+  .deny{background:var(--card);color:var(--ink)}
+  .empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:14px}
+  .empty .big{font-size:28px;margin-bottom:6px}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .kpi .l{font-size:12px;color:var(--muted)} .kpi .v{font-family:'JetBrains Mono',monospace;font-size:22px;margin-top:4px}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  td{padding:9px 0;border-bottom:1px solid var(--line)} tr:last-child td{border:0}
+  td:last-child{text-align:right;font-family:'JetBrains Mono',monospace}
+  tr.total td{font-weight:700;border-top:2px solid var(--ink)}
+  .h{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:6px 4px 0}
+  .org{display:flex;flex-direction:column;align-items:center;gap:0}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%;}
+  .node.root{background:var(--ink);color:#fff;border-color:var(--ink);text-align:center}
+  .node.root small{color:#bbb}
+  .node small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .vline{width:2px;height:14px;background:var(--line)}
+  .teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+  .team{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px}
+  .team.killed{opacity:.5}
+  .team h4{font-size:13.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:4px}
+  .agents{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+  .agent{display:flex;align-items:center;gap:7px;font-size:12px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#bbb;flex:none}
+  .dot.busy{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);animation:p 1.6s infinite}
+  .dot.wait{background:var(--warn)}
+  @keyframes p{50%{box-shadow:0 0 0 6px transparent}}
+  .mini{font-size:11px;color:var(--muted);margin-top:8px;font-family:'JetBrains Mono',monospace}
+  .feed{display:flex;flex-direction:column}
+  .ev{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.4}
+  .ev:last-child{border:0}
+  .ev .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;flex:none;font-weight:700}
+  .ic.ok{background:var(--good-soft);color:var(--good)} .ic.ask{background:var(--warn-soft);color:var(--warn)}
+  .ic.no{background:var(--bad-soft);color:var(--bad)} .ic.info{background:#eeede8;color:var(--muted)}
+  .ev .t{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px}
+  .run{font:inherit;font-size:14px;font-weight:600;padding:12px;border-radius:12px;border:1px dashed var(--accent);background:var(--accent-soft);color:var(--accent);cursor:pointer}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;font-size:13px;padding:10px 16px;border-radius:10px;transition:transform .25s;pointer-events:none}
+  .toast.on{transform:translateX(-50%) translateY(0)}
+  footer{text-align:center;font-size:11px;color:var(--muted);padding:8px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div>
+      <h1>Trailhead Supply</h1>
+      <div class="sub">Your AI team · Week 1 test</div>
+    </div>
+    <span class="pill">● Live</span>
+  </header>
+
+  <div class="cap">
+    <div class="cap-row"><span>Loss cap used</span><span><b id="capUsed">$0.00</b> / $200.00</span></div>
+    <div class="bar"><div class="spent" id="barSpent"></div><div class="res" id="barRes"></div></div>
+    <div class="cap-row" style="margin-top:8px;font-size:12px"><span>Spent · Reserved</span><span id="capAvail">$200.00 left</span></div>
+  </div>
+
+  <nav>
+    <button class="on" data-tab="inbox">Inbox<span class="badge" id="badge">0</span></button>
+    <button data-tab="pnl">P&amp;L</button>
+    <button data-tab="team">Team</button>
+    <button data-tab="feed">Activity</button>
+  </nav>
+
+  <section id="inbox" class="on"></section>
+
+  <section id="pnl">
+    <div class="kpis">
+      <div class="card kpi"><div class="l">Net profit</div><div class="v" id="kNet">$0</div></div>
+      <div class="card kpi"><div class="l">Orders</div><div class="v" id="kOrders">0</div></div>
+      <div class="card kpi"><div class="l">Ad spend</div><div class="v" id="kAds">$0</div></div>
+      <div class="card kpi"><div class="l">ROAS</div><div class="v" id="kRoas">–</div></div>
+    </div>
+    <div class="h">Breakdown</div>
+    <div class="card"><table id="pnlTable"></table></div>
+  </section>
+
+  <section id="team">
+    <div class="org" id="org"></div>
+  </section>
+
+  <section id="feed">
+    <div class="card feed" id="feedList"></div>
+  </section>
+
+  <button class="run" id="runBtn">▶ Run next agent cycle</button>
+  <footer>Prototype · fake data · same pipeline as <code>npm run demo</code></footer>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = c => (c<0?'-':'') + '$' + (Math.abs(c)/100).toFixed(2);
+const CAP = 20000;
+const state = {
+  spent: 0, reserved: 0,
+  revenue: 6398, pod: 2300, fees: 216, refunds: 0, ads: 0, orders: 2,
+  teams: [
+    { id:'hiking', name:'Retro hiking tees', budget:10000, spent:0, status:'testing',
+      agents:[['Creative','idle'],['Ads','wait'],['Store','idle']] },
+    { id:'cats', name:'Cat-dad mugs', budget:10000, spent:0, status:'testing',
+      agents:[['Creative','busy'],['Ads','idle'],['Store','idle']] },
+  ],
+  inbox: [
+    { id:'a1', agent:'ads', type:'Launch ad campaign', risk:'high', cost:3000, team:'hiking',
+      detail:'“Hiking tees – test A” · $10/day for 3 days on Meta',
+      why:'Top ad image scored 0.81. A 3-day test will measure CTR and cost per purchase before scaling.',
+      verdict:'High-risk action needs approval' },
+    { id:'a2', agent:'support', type:'Refund order #1002', risk:'med', cost:3499, team:null,
+      detail:'leo@example.com · “Wrong size”',
+      why:'Customer asked for a refund on a $34.99 hoodie. Over the support agent’s $25 limit.',
+      verdict:'$34.99 is over the $25 refund limit' },
+  ],
+  feed: [
+    ['ok','Research ranked 3 niches','research · “hiking shirt” +34% YoY'],
+    ['ok','Store built About page','store_build'],
+    ['ok','Created product “Sunset Switchback Tee”','store_build · $28.99'],
+    ['no','Blocked: raise ad budget to $250/day','ads · would exceed $200 loss cap'],
+    ['ok','Replied to “Where is my order?”','support · maya@example.com'],
+    ['ask','Approval requested: launch ad campaign','ads · $30.00'],
+    ['ask','Approval requested: refund #1002','support · $34.99'],
+  ],
+  cycle: 0,
+};
+
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2000)}
+function log(kind,title,sub){state.feed.unshift([kind,title,sub]);}
+
+function renderCap(){
+  const used = state.spent + state.reserved;
+  document.getElementById('capUsed').textContent = $(state.spent);
+  document.getElementById('barSpent').style.width = (state.spent/CAP*100)+'%';
+  document.getElementById('barRes').style.width = (state.reserved/CAP*100)+'%';
+  document.getElementById('capAvail').textContent = $(CAP-used)+' left';
+}
+
+function renderInbox(){
+  const el = document.getElementById('inbox');
+  document.getElementById('badge').textContent = state.inbox.length;
+  document.getElementById('badge').style.display = state.inbox.length ? '' : 'none';
+  if(!state.inbox.length){ el.innerHTML = '<div class="card empty"><div class="big">✓</div>Nothing needs you right now.<br>Your agents are working within limits.</div>'; return; }
+  el.innerHTML = state.inbox.map(a => `
+    <div class="card req">
+      <div class="req-top"><span class="tag t-${a.risk}">${a.risk==='high'?'High risk':'Medium risk'}</span><span class="tag t-agent">${a.agent}</span></div>
+      <h3>${a.type}</h3>
+      <div class="amt">${$(a.cost)}</div>
+      <p>${a.detail}</p>
+      <div class="why"><b>Agent’s reasoning:</b> ${a.why}<br><b>Safety layer:</b> ${a.verdict}</div>
+      <div class="btns"><button class="deny" data-deny="${a.id}">Deny</button><button class="approve" data-ok="${a.id}">Approve</button></div>
+    </div>`).join('');
+}
+
+function renderPnl(){
+  const net = state.revenue - state.pod - state.fees - state.refunds - state.ads;
+  const k = (id,v,cls)=>{const e=document.getElementById(id);e.textContent=v;e.className='v'+(cls?' '+cls:'')};
+  k('kNet',$(net), net>=0?'pos':'neg'); k('kOrders',state.orders); k('kAds',$(state.ads));
+  k('kRoas', state.ads ? (state.revenue/state.ads).toFixed(2)+'×' : '–');
+  document.getElementById('pnlTable').innerHTML = [
+    ['Revenue',state.revenue],['POD costs',-state.pod],['Shopify fees',-state.fees],
+    ['Ad spend',-state.ads],['Refunds',-state.refunds]
+  ].map(([l,v])=>`<tr><td>${l}</td><td class="${v<0?'neg':v>0?'pos':''}">${$(v)}</td></tr>`).join('')
+   + `<tr class="total"><td>Net</td><td>${$(net)}</td></tr>`;
+}
+
+function renderTeam(){
+  document.getElementById('org').innerHTML = `
+    <div class="node root"><b>Orchestrator</b><small>schedules agents · routes approvals</small></div>
+    <div class="vline"></div>
+    <div class="teams" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="node" style="text-align:center"><b style="font-size:12.5px">Research</b><small>idle</small></div>
+      <div class="node" style="text-align:center"><b style="font-size:12.5px">Safety</b><small>watching $</small></div>
+      <div class="node" style="text-align:center"><b style="font-size:12.5px">Support</b><small>${state.inbox.some(a=>a.agent==='support')?'waiting on you':'inbox clear'}</small></div>
+    </div>
+    <div class="vline"></div>
+    <div class="h" style="align-self:flex-start;margin-bottom:8px">Niche sub-teams</div>
+    <div class="teams">${state.teams.map(t=>`
+      <div class="team ${t.status==='killed'?'killed':''}">
+        <h4>${t.name}<span class="tag ${t.status==='killed'?'t-high':t.status==='scaling'?'t-low':'t-med'}">${t.status}</span></h4>
+        <div class="agents">${t.agents.map(([n,s])=>`<div class="agent"><span class="dot ${s}"></span>${n}<span style="margin-left:auto;color:var(--muted);font-size:11px">${s==='busy'?'working':s==='wait'?'needs OK':'idle'}</span></div>`).join('')}</div>
+        <div class="mini">${$(t.spent)} / ${$(t.budget)}</div>
+      </div>`).join('')}
+    </div>`;
+}
+
+function renderFeed(){
+  const ic = {ok:'✓',ask:'?',no:'✗',info:'•'};
+  document.getElementById('feedList').innerHTML = state.feed.map(([k,t,s])=>
+    `<div class="ev"><div class="ic ${k}">${ic[k]}</div><div><div>${t}</div><div class="t">${s}</div></div></div>`).join('');
+}
+
+function render(){renderCap();renderInbox();renderPnl();renderTeam();renderFeed();}
+
+function decide(id, ok){
+  const i = state.inbox.findIndex(a=>a.id===id); if(i<0) return;
+  const [a] = state.inbox.splice(i,1);
+  if(ok){
+    if(a.cost > CAP - state.spent - state.reserved){ log('no',`Blocked: ${a.type}`,'reservation failed · over cap'); toast('Blocked: over loss cap'); render(); return; }
+    state.spent += a.cost;
+    if(a.agent==='ads'){ state.ads += a.cost; const t=state.teams.find(t=>t.id===a.team); t.spent+=a.cost; t.agents[1][1]='busy'; }
+    if(a.agent==='support'){ state.refunds += a.cost; state.revenue -= 0; }
+    log('ok',`Approved: ${a.type}`,`${a.agent} · ${$(a.cost)} committed`);
+    toast('Approved · '+$(a.cost)+' committed');
+  } else {
+    if(a.agent==='ads'){ const t=state.teams.find(t=>t.id===a.team); t.agents[1][1]='idle'; }
+    log('info',`Denied: ${a.type}`,`${a.agent} · no money spent`);
+    toast('Denied');
+  }
+  render();
+}
+
+const cycles = [
+  () => { // ads results come in
+    state.orders += 4; state.revenue += 11596; state.pod += 4600; state.fees += 400;
+    log('ok','4 new orders from “Hiking tees – test A”','ads · CTR 2.1% · CPA $7.50');
+    state.teams[1].agents[0][1]='idle';
+    state.inbox.push({ id:'a3', agent:'creative', type:'Publish 3 new mug designs', risk:'med', cost:0, team:'cats',
+      detail:'Cat-dad mugs · passed trademark screen', why:'Designs scored 0.62–0.74. Similarity check found no close matches.', verdict:'Medium risk: new public listing' });
+    log('ask','Approval requested: publish mug designs','creative · $0.00');
+  },
+  () => { // kill rule
+    const t = state.teams[1]; t.status='killed'; t.agents.forEach(a=>a[1]='idle');
+    state.inbox = state.inbox.filter(a=>a.team!=='cats');
+    log('no','Kill rule: “Cat-dad mugs” shut down','allocator · 0 sales after test window');
+    state.teams[0].status='scaling';
+    log('ok','“Retro hiking tees” moved to scaling','allocator · Thompson sampling picked best arm');
+  },
+  () => {
+    state.inbox.push({ id:'a4', agent:'ads', type:'Raise daily budget to $20', risk:'high', cost:6000, team:'hiking',
+      detail:'“Hiking tees – test A” · +$10/day for 3 days', why:'ROAS above 2× for 3 days straight. Scaling the winner.', verdict:'High-risk action needs approval' });
+    state.teams[0].agents[1][1]='wait';
+    log('ask','Approval requested: raise ad budget','ads · $60.00');
+  },
+];
+
+document.querySelector('nav').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.tab));
+});
+document.getElementById('inbox').addEventListener('click', e=>{
+  if(e.target.dataset.ok) decide(e.target.dataset.ok,true);
+  if(e.target.dataset.deny) decide(e.target.dataset.deny,false);
+});
+document.getElementById('runBtn').addEventListener('click', ()=>{
+  const f = cycles[state.cycle];
+  if(!f){ toast('Demo complete. Refresh to restart.'); return; }
+  f(); state.cycle++; render(); toast('Agent cycle '+state.cycle+' finished');
+});
+render();
+</script>
+</body>
+</html>
